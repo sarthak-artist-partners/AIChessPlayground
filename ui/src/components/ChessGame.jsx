@@ -72,6 +72,8 @@ export default function ChessGame() {
   const [blackLogs, setBlackLogs] = useState([])
   const [wsStatus, setWsStatus] = useState('connecting')
   const [highlightSquares, setHighlightSquares] = useState({})
+  const [currentTurn, setCurrentTurn] = useState('w')  // white always opens
+  const [gameOver, setGameOver] = useState(false)
   const wsRef = useRef(null)
   const highlightTimerRef = useRef(null)
 
@@ -112,6 +114,8 @@ export default function ChessGame() {
       }
 
       setPosition(chess.fen())
+      setCurrentTurn(chess.turn())
+      if (chess.isGameOver()) setGameOver(true)
 
       // Highlight the from/to squares, clear after HIGHLIGHT_MS
       clearTimeout(highlightTimerRef.current)
@@ -155,7 +159,7 @@ export default function ChessGame() {
       <div style={styles.title}>AI Chess Playground</div>
 
       <div style={styles.mainRow}>
-        <TerminalLog player="WHITE" logs={whiteLogs} />
+        <TerminalLog player="WHITE" logs={whiteLogs} isCalculating={!gameOver && currentTurn === 'w'} />
 
         <div style={styles.boardContainer}>
           <Chessboard
@@ -169,7 +173,7 @@ export default function ChessGame() {
           />
         </div>
 
-        <TerminalLog player="BLACK" logs={blackLogs} />
+        <TerminalLog player="BLACK" logs={blackLogs} isCalculating={!gameOver && currentTurn === 'b'} />
       </div>
 
       <div style={styles.statusBar}>

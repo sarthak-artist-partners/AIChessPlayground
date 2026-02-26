@@ -1,4 +1,6 @@
-import { useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
+const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 
 const styles = {
   container: {
@@ -50,14 +52,39 @@ const styles = {
     fontStyle: 'italic',
     fontSize: '12px',
   },
+  spinner: {
+    fontSize: '13px',
+    lineHeight: '1.5',
+    color: '#f0a500',
+    whiteSpace: 'pre',
+  },
 }
 
-export default function TerminalLog({ player, logs }) {
+export default function TerminalLog({ player, logs, isCalculating }) {
   const bottomRef = useRef(null)
+  const [spinnerFrame, setSpinnerFrame] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+  const startTimeRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [logs])
+
+  useEffect(() => {
+    if (!isCalculating) {
+      startTimeRef.current = null
+      setElapsed(0)
+      setSpinnerFrame(0)
+      return
+    }
+    startTimeRef.current = Date.now()
+    setElapsed(0)
+    const interval = setInterval(() => {
+      setSpinnerFrame((f) => (f + 1) % SPINNER_FRAMES.length)
+      setElapsed(((Date.now() - startTimeRef.current) / 1000).toFixed(1))
+    }, 100)
+    return () => clearInterval(interval)
+  }, [isCalculating])
 
   const headerColor = player === 'WHITE' ? styles.headerWhite : styles.headerBlack
 
@@ -67,7 +94,7 @@ export default function TerminalLog({ player, logs }) {
         {player}
       </div>
       <div style={styles.logArea}>
-        {logs.length === 0 ? (
+        {logs.length === 0 && !isCalculating ? (
           <span style={styles.empty}>awaiting moves...</span>
         ) : (
           logs.map((entry, i) => (
@@ -76,6 +103,11 @@ export default function TerminalLog({ player, logs }) {
               {entry}
             </div>
           ))
+        )}
+        {isCalculating && (
+          <div style={styles.spinner}>
+            {SPINNER_FRAMES[spinnerFrame]}{` Calculating... ${elapsed}s`}
+          </div>
         )}
         <div ref={bottomRef} />
       </div>
