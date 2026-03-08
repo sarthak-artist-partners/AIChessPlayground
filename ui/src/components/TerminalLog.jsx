@@ -42,6 +42,21 @@ const styles = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-all',
   },
+  entryThinking: {
+    fontSize: '12px',
+    lineHeight: '1.5',
+    color: '#e0e0e0',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-all',
+    opacity: 0.7,
+  },
+  entryError: {
+    fontSize: '13px',
+    lineHeight: '1.5',
+    color: '#ff4444',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-all',
+  },
   prompt: {
     color: '#555',
     marginRight: '4px',
@@ -258,12 +273,18 @@ export default function TerminalLog({
         {logs.length === 0 && !isCalculating ? (
           <span style={styles.empty}>awaiting moves...</span>
         ) : (
-          logs.map((entry, i) => (
-            <div key={i} style={styles.entry}>
-              <span style={styles.prompt}>&gt;</span>
-              {entry}
-            </div>
-          ))
+          logs.map((entry, i) => {
+            const entryStyle =
+              entry.type === 'thinking' ? styles.entryThinking :
+              entry.type === 'error'    ? styles.entryError :
+              styles.entry
+            return (
+              <div key={i} style={entryStyle}>
+                <span style={styles.prompt}>&gt;</span>
+                {entry.text}
+              </div>
+            )
+          })
         )}
         {isCalculating && (
           <div style={styles.spinner}>

@@ -1,11 +1,14 @@
 import asyncio
 
 import chess
+from dotenv import load_dotenv
+
+load_dotenv()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from agents import RandomAgent, StockfishAgent
+from agents import OpenAIZeroShotAgent, RandomAgent, StockfishAgent
 
 app = FastAPI()
 
@@ -20,6 +23,7 @@ app.add_middleware(
 AGENT_REGISTRY = {
     "random": RandomAgent,
     "stockfish": StockfishAgent,
+    "openai_zero_shot": OpenAIZeroShotAgent,
 }
 
 MOVE_DELAY = 0.6  # seconds between moves so UI animation can keep up
@@ -105,6 +109,14 @@ async def _run_game(
         white = AGENT_REGISTRY[white_name](color="white", **white_config)
         black = AGENT_REGISTRY[black_name](color="black", **black_config)
 
+        async def make_log_callback(color: str):
+            async def _cb(message: str, type: str = "thinking"):
+                await manager.broadcast({"log": message, "player": color, "type": type})
+            return _cb
+
+        white.set_log_callback(await make_log_callback("white"))
+        black.set_log_callback(await make_log_callback("black"))
+
         board = chess.Board()
         await white.on_game_start(board)
         await black.on_game_start(board)
@@ -113,11 +125,25 @@ async def _run_game(
 
         while not board.is_game_over():
             agent = agents_map[board.turn]
-            uci = await agent.choose_move(board)
-            move = chess.Move.from_uci(uci)
+            try:
+                uci = await agent.choose_move(board)
+                move = chess.Move.from_uci(uci)
+            except Exception as exc:
+                print(f"[GAME] {agent.name} failed to produce a move: {exc}")
+                await manager.broadcast({
+                    "log": f" Failed to produce a move: {exc}",
+                    "player": agent.color,
+                    "type": "error",
+                })
+                break
 
             if move not in board.legal_moves:
                 print(f"[GAME] Illegal move {uci!r} from {agent.name}, aborting")
+                await manager.broadcast({
+                    "log": f" Illegal move selected: {board.san(move)}",
+                    "player": agent.color,
+                    "type": "error",
+                })
                 break
 
             san = board.san(move)

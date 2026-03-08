@@ -23,6 +23,16 @@ class Agent(ABC):
             raise ValueError(f"color must be 'white' or 'black', got {color!r}")
         self.color = color
         self.name = name or self.__class__.__name__
+        self._log_callback = None
+
+    def set_log_callback(self, callback) -> None:
+        """Set a callback for emitting thinking/query log entries to the UI."""
+        self._log_callback = callback
+
+    async def log(self, message: str, type: str = "thinking") -> None:
+        """Emit a log entry. No-op if no callback is registered."""
+        if self._log_callback:
+            await self._log_callback(message, type)
 
     @property
     def color_char(self) -> str:

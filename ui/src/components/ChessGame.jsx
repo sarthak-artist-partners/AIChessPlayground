@@ -206,21 +206,41 @@ export default function ChessGame() {
         return
       }
 
+      // Thinking/query log or error from an AI agent
+      if (data.log && (data.type === 'thinking' || data.type === 'error')) {
+        const entry = { text: data.log, type: data.type }
+        if (data.player === 'white') {
+          setWhiteLogs((prev) => [...prev, entry])
+        } else {
+          setBlackLogs((prev) => [...prev, entry])
+        }
+        return
+      }
+
       const { move, player } = data
       if (!move) return
 
       const chess = chessRef.current
+
+      const addErrorLog = (msg) => {
+        const entry = { text: msg, type: 'error' }
+        const isWhitesTurn = player ? player === 'white' : chess.turn() === 'w'
+        if (isWhitesTurn) setWhiteLogs((prev) => [...prev, entry])
+        else setBlackLogs((prev) => [...prev, entry])
+      }
 
       let result
       try {
         result = chess.move(move)
       } catch {
         console.warn('Invalid move received:', move)
+        addErrorLog(` Invalid move: ${move}`)
         return
       }
 
       if (!result) {
         console.warn('Move rejected by chess.js:', move)
+        addErrorLog(` Illegal move rejected: ${move}`)
         return
       }
 
@@ -282,7 +302,7 @@ export default function ChessGame() {
         highlightTimerRef.current = setTimeout(() => setHighlightSquares({}), HIGHLIGHT_MS)
       }
 
-      const logEntry = ` Move: ${move}`
+      const logEntry = { text: ` Move: ${move}`, type: 'move' }
       const isWhite = player ? player === 'white' : result.color === 'w'
       if (isWhite) {
         setWhiteLogs((prev) => [...prev, logEntry])
