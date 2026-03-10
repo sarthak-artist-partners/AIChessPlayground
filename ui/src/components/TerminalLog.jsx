@@ -153,6 +153,21 @@ const styles = {
     color: '#00ff88',
     fontWeight: 'bold',
   },
+  statsBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '6px 12px',
+    backgroundColor: '#111',
+    borderTop: '1px solid #1e1e1e',
+    fontSize: '11px',
+    letterSpacing: '1px',
+    color: '#444',
+  },
+  statValue: {
+    color: '#888',
+    fontWeight: 'bold',
+    marginRight: '3px',
+  },
 }
 
 export default function TerminalLog({
@@ -165,6 +180,7 @@ export default function TerminalLog({
   gameStarted,
   skillLevel,
   onSkillLevelChange,
+  stats,
 }) {
   const bottomRef = useRef(null)
   const [spinnerFrame, setSpinnerFrame] = useState(0)
@@ -292,6 +308,12 @@ export default function TerminalLog({
           </div>
         )}
         <div ref={bottomRef} />
+      </div>
+
+      <div style={styles.statsBar}>
+        <span><span style={styles.statValue}>{stats?.moves ?? 0}</span>MOVES</span>
+        <span><span style={styles.statValue}>{stats?.invalidMoves ?? 0}</span>INVALID</span>
+        <span><span style={styles.statValue}>{(stats?.totalTime ?? 0).toFixed(1)}s</span>TOTAL TIME</span>
       </div>
     </div>
   )

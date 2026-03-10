@@ -173,8 +173,12 @@ export default function ChessGame() {
   const [whiteSkillLevel, setWhiteSkillLevel] = useState(20)
   const [blackSkillLevel, setBlackSkillLevel] = useState(20)
   const [availableAgents, setAvailableAgents] = useState(['random'])
+  const [whiteStats, setWhiteStats] = useState({ moves: 0, invalidMoves: 0, totalTime: 0 })
+  const [blackStats, setBlackStats] = useState({ moves: 0, invalidMoves: 0, totalTime: 0 })
   const wsRef = useRef(null)
   const highlightTimerRef = useRef(null)
+  const whiteTurnStartRef = useRef(null)
+  const blackTurnStartRef = useRef(null)
 
   // Fetch available agents from the server
   useEffect(() => {
@@ -225,8 +229,13 @@ export default function ChessGame() {
       const addErrorLog = (msg) => {
         const entry = { text: msg, type: 'error' }
         const isWhitesTurn = player ? player === 'white' : chess.turn() === 'w'
-        if (isWhitesTurn) setWhiteLogs((prev) => [...prev, entry])
-        else setBlackLogs((prev) => [...prev, entry])
+        if (isWhitesTurn) {
+          setWhiteLogs((prev) => [...prev, entry])
+          setWhiteStats((s) => ({ ...s, invalidMoves: s.invalidMoves + 1 }))
+        } else {
+          setBlackLogs((prev) => [...prev, entry])
+          setBlackStats((s) => ({ ...s, invalidMoves: s.invalidMoves + 1 }))
+        }
       }
 
       let result
@@ -304,10 +313,19 @@ export default function ChessGame() {
 
       const logEntry = { text: ` Move: ${move}`, type: 'move' }
       const isWhite = player ? player === 'white' : result.color === 'w'
+      const now = Date.now()
       if (isWhite) {
+        const elapsed = whiteTurnStartRef.current ? (now - whiteTurnStartRef.current) / 1000 : 0
+        whiteTurnStartRef.current = null
+        blackTurnStartRef.current = now
         setWhiteLogs((prev) => [...prev, logEntry])
+        setWhiteStats((s) => ({ ...s, moves: s.moves + 1, totalTime: s.totalTime + elapsed }))
       } else {
+        const elapsed = blackTurnStartRef.current ? (now - blackTurnStartRef.current) / 1000 : 0
+        blackTurnStartRef.current = null
+        whiteTurnStartRef.current = now
         setBlackLogs((prev) => [...prev, logEntry])
+        setBlackStats((s) => ({ ...s, moves: s.moves + 1, totalTime: s.totalTime + elapsed }))
       }
     }
 
@@ -336,6 +354,10 @@ export default function ChessGame() {
     setCurrentTurn('w')
     clearTimeout(highlightTimerRef.current)
     setHighlightSquares({})
+    setWhiteStats({ moves: 0, invalidMoves: 0, totalTime: 0 })
+    setBlackStats({ moves: 0, invalidMoves: 0, totalTime: 0 })
+    whiteTurnStartRef.current = Date.now()
+    blackTurnStartRef.current = null
     setGameStarted(true)
 
     try {
@@ -405,6 +427,7 @@ export default function ChessGame() {
           gameStarted={gameStarted}
           skillLevel={whiteSkillLevel}
           onSkillLevelChange={setWhiteSkillLevel}
+          stats={whiteStats}
         />
 
         <div style={styles.boardContainer}>
@@ -429,6 +452,7 @@ export default function ChessGame() {
           gameStarted={gameStarted}
           skillLevel={blackSkillLevel}
           onSkillLevelChange={setBlackSkillLevel}
+          stats={blackStats}
         />
       </div>
 
